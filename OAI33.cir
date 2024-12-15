@@ -1,0 +1,87 @@
+*simulation
+*Eldo is case sensitive 
+*Comment is done in new line using * option
+
+*include the corner file to be used TT/SS/SF/FF/FS
+.include /modelfile_65nm/minNminP.cir
+
+*Include the source netlist
+.include OAI33.src.net
+
+*Instantiate the inverter as in the netlist file
+
+X1 gnd inA inB inC inD inE inF out vdd OAI33Cell
+
+*You can choose to make some parameters
+.param SUPPLY = 1.08
+.param tend = 200n
+.TEMP = 125
+
+C out gnd 20f
+
+*Give inputs to the netlist
+vd vdd 0 SUPPLY
+vg gnd 0 0
+v1 inA gnd PULSE (0 1.08 0 10p 10p 2n 4n)
+v2 inB gnd PULSE (0 1.08 0 10p 10p 4n 8n)
+v3 inC gnd PULSE (0 1.08 0 10p 10p 6n 12n)
+v4 inD gnd PULSE (0 1.08 0 10p 10p 8n 16n)
+v5 inE gnd PULSE (0 1.08 0 10p 10p 10n 20n)
+v6 inF gnd PULSE (0 1.08 0 10p 10p 12n 24n)
+
+*Specify which all outputs you want to see Here all voltage and current are specified
+.probe v(*) v(x1.*)
+.probe i(*)
+
+*rising population delay
+*tplh is rise delay and tphl is fall delay at output
+
+.measure tran tplh_A
++TRIG v(inA) VAL =SUPPLY/2 FALL =1
++TARG v(out) VAL =SUPPLY/2 RISE =1
+
+.measure tran tplh_B
++TRIG v(inB) VAL =SUPPLY/2 FALL =1
++TARG v(out) VAL =SUPPLY/2 RISE =1
+
+.measure tran tphl_A
++TRIG v(inA) VAL =SUPPLY/2 RISE =1
++TARG v(out) VAL =SUPPLY/2 FALL =1
+
+.measure tran tphl_B
++TRIG v(inB) VAL =SUPPLY/2 RISE =1
++TARG v(out) VAL =SUPPLY/2 FALL =1
+
+.measure tran tfall
++TRIG v(out) VAL =0.8*SUPPLY FALL =1
++TARG v(out) VAL =0.2*SUPPLY FALL =1
+
+.measure tran trise
++TRIG v(out) VAL =0.2*SUPPLY RISE =1
++TARG v(out) VAL =0.8*SUPPLY RISE =1
+
+*delay caluclation from tphl and tlph 
+.measure delayA Param = (tplh_A+tphl_A)/2
+
+*delay caluclation from tphl and tlph 
+.measure delayB Param = (tplh_B+tphl_B)/2
+
+.measure tran avg_current AVG i(vd)
+
+.measure tran leakage_current AVG i(vd) FROM=90n TO=tend
+
+.measure tran dynamic_power PARAM = SUPPLY*avg_current
+
+.measure tran static_power PARAM = abs(SUPPLY*i(vd))
+
+.measure tran total_power PARAM = dynamic_power + static_power
+
+
+*Param must be used for mathematical equation
+
+*The type of analysis you want to perform DC/Transient
+.tran 1p tend
+
+.extract
+.end
+
